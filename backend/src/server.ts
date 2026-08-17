@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import propertiesRouter from './routes/properties.js';
+import ownerPropertiesRouter from './routes/ownerProperties.js';
 import authRouter from './routes/auth.js';
 
 const app = express();
@@ -16,9 +17,10 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'rental-platform-api' }));
 app.use('/api/auth', authRouter);
 app.use('/api/properties', propertiesRouter);
+app.use('/api/owner/properties', ownerPropertiesRouter);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  if (error instanceof Error && error.name === 'ZodError') return res.status(400).json({ error: 'Invalid request parameters' });
+  if (error instanceof Error && error.name === 'ZodError') return res.status(400).json({ error: 'Invalid request data' });
   console.error(error);
   return res.status(500).json({ error: 'Internal server error' });
 });
