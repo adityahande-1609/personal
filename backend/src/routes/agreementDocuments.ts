@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
+import { deletePrivateFile } from '../services/storage.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -13,7 +14,7 @@ const schema = z.object({
 });
 
 async function canAccessAgreement(id: string, userId: string) {
-  return prisma.agreement.findFirst({ where: { id, OR: [{ ownerId: userId }, { tenantId: userId }] }, select: { id: true, ownerId: true, tenantId: true } });
+  return prisma.agreement.findFirst({ where: { id, OR: [{ ownerId: userId }, { tenantId: userId }] }, select: { id: true } });
 }
 
 router.get('/:agreementId', async (req, res, next) => {
@@ -42,6 +43,7 @@ router.delete('/:agreementId/:documentId', async (req, res, next) => {
     const document = await prisma.document.findFirst({ where: { id: String(req.params.documentId), agreementId: agreement.id, userId: req.user!.id } });
     if (!document) return res.status(404).json({ error: 'Document not found' });
     await prisma.document.delete({ where: { id: document.id } });
+    if (document.storageKey) await deletePrivateFile(document.storageKey).catch(() => undefined);
     return res.status(204).send();
   } catch (error) { return next(error); }
 });
