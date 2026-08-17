@@ -9,6 +9,7 @@ import authRouter from './routes/auth.js';
 import favoritesRouter from './routes/favorites.js';
 import enquiriesRouter from './routes/enquiries.js';
 import visitsRouter from './routes/visits.js';
+import notificationsRouter from './routes/notifications.js';
 
 const app = express();
 app.use(helmet());
@@ -24,6 +25,7 @@ app.use('/api/owner/properties', ownerPropertiesRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/enquiries', enquiriesRouter);
 app.use('/api/visits', visitsRouter);
+app.use('/api/notifications', notificationsRouter);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof Error && error.name === 'ZodError') return res.status(400).json({ error: 'Invalid request data' });
