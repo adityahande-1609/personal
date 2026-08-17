@@ -1,19 +1,264 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
-enum Role { TENANT OWNER ADMIN }
-enum VerificationStatus { PENDING UNDER_REVIEW VERIFIED REJECTED }
-enum PropertyStatus { DRAFT ACTIVE INACTIVE REMOVED }
-enum VisitStatus { PENDING ACCEPTED REJECTED RESCHEDULE_REQUESTED COMPLETED CANCELLED }
-enum EnquiryStatus { OPEN RESPONDED RESOLVED }
-enum AgreementStatus { DRAFT SUBMITTED UNDER_REVIEW READY COMPLETED CANCELLED }
-model User { id String @id @default(cuid()) name String email String @unique phone String? passwordHash String role Role isVerified Boolean @default(false) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt properties Property[] favourites Favourite[] tenantEnquiries Enquiry[] @relation("tenantEnquiries") ownerEnquiries Enquiry[] @relation("ownerEnquiries") tenantVisits Visit[] @relation("tenantVisits") ownerVisits Visit[] @relation("ownerVisits") notifications Notification[] agreementsAsTenant Agreement[] @relation("tenantAgreements") agreementsAsOwner Agreement[] @relation("ownerAgreements") reports Report[] documents Document[] sessions Session[] }
-model Session { id String @id @default(cuid()) userId String user User @relation(fields:[userId],references:[id],onDelete: Cascade) tokenHash String @unique expiresAt DateTime createdAt DateTime @default(now()) }
-model Property { id String @id @default(cuid()) ownerId String owner User @relation(fields:[ownerId],references:[id],onDelete:Restrict) title String description String propertyType String rent Decimal @db.Decimal(12,2) deposit Decimal? @db.Decimal(12,2) maintenance Decimal? @db.Decimal(12,2) brokerage Decimal? @db.Decimal(12,2) bedrooms Int bathrooms Int area Decimal? @db.Decimal(10,2) furnishing String? address String areaName String city String state String pincode String floor Int? totalFloors Int? propertyAge Int? availableFrom DateTime status PropertyStatus @default(DRAFT) verificationStatus VerificationStatus @default(PENDING) images PropertyImage[] favourites Favourite[] enquiries Enquiry[] visits Visit[] agreements Agreement[] reports Report[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt @@index([city,areaName]) @@index([rent,bedrooms]) }
-model PropertyImage { id String @id @default(cuid()) propertyId String property Property @relation(fields:[propertyId],references:[id],onDelete:Cascade) imageUrl String storageKey String? isPrimary Boolean @default(false) createdAt DateTime @default(now()) }
-model Favourite { id String @id @default(cuid()) userId String propertyId String user User @relation(fields:[userId],references:[id],onDelete: Cascade) property Property @relation(fields:[propertyId],references:[id],onDelete: Cascade) createdAt DateTime @default(now()) @@unique([userId,propertyId]) }
-model Enquiry { id String @id @default(cuid()) propertyId String tenantId String ownerId String property Property @relation(fields:[propertyId],references:[id],onDelete: Cascade) tenant User @relation("tenantEnquiries",fields:[tenantId],references:[id]) owner User @relation("ownerEnquiries",fields:[ownerId],references:[id]) message String status EnquiryStatus @default(OPEN) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
-model Visit { id String @id @default(cuid()) propertyId String tenantId String ownerId String property Property @relation(fields:[propertyId],references:[id],onDelete: Cascade) tenant User @relation("tenantVisits",fields:[tenantId],references:[id]) owner User @relation("ownerVisits",fields:[ownerId],references:[id]) requestedDate DateTime requestedTime String message String? status VisitStatus @default(PENDING) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
-model Agreement { id String @id @default(cuid()) propertyId String ownerId String tenantId String property Property @relation(fields:[propertyId],references:[id],onDelete: Cascade) owner User @relation("ownerAgreements",fields:[ownerId],references:[id]) tenant User @relation("tenantAgreements",fields:[tenantId],references:[id]) rent Decimal @db.Decimal(12,2) deposit Decimal? @db.Decimal(12,2) startDate DateTime endDate DateTime rentDueDate Int noticePeriod String? maintenanceResponsibility String? utilities String? pets String? subletting String? additionalTerms String? status AgreementStatus @default(DRAFT) documents Document[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
-model Document { id String @id @default(cuid()) userId String agreementId String user User @relation(fields:[userId],references:[id]) agreement Agreement @relation(fields:[agreementId],references:[id],onDelete: Cascade) documentType String storageKey String status String @default("PENDING") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
-model Report { id String @id @default(cuid()) reporterId String propertyId String reporter User @relation(fields:[reporterId],references:[id]) property Property @relation(fields:[propertyId],references:[id]) reason String description String? status String @default("OPEN") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
-model Notification { id String @id @default(cuid()) userId String user User @relation(fields:[userId],references:[id],onDelete: Cascade) title String message String isRead Boolean @default(false) createdAt DateTime @default(now()) @@index([userId,isRead]) }
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TENANT
+  OWNER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+enum PropertyStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  REMOVED
+}
+
+enum VisitStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  RESCHEDULE_REQUESTED
+  COMPLETED
+  CANCELLED
+}
+
+enum EnquiryStatus {
+  OPEN
+  RESPONDED
+  RESOLVED
+}
+
+enum AgreementStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  name               String
+  email              String         @unique
+  phone              String?
+  passwordHash       String
+  role               Role
+  isVerified         Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  properties         Property[]
+  favourites         Favourite[]
+  tenantEnquiries    Enquiry[]      @relation("tenantEnquiries")
+  ownerEnquiries     Enquiry[]      @relation("ownerEnquiries")
+  tenantVisits       Visit[]        @relation("tenantVisits")
+  ownerVisits        Visit[]        @relation("ownerVisits")
+  notifications      Notification[]
+  agreementsAsTenant Agreement[]    @relation("tenantAgreements")
+  agreementsAsOwner  Agreement[]    @relation("ownerAgreements")
+  reports            Report[]
+  documents          Document[]
+  sessions           Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Property {
+  id                 String             @id @default(cuid())
+  ownerId            String
+  owner              User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  title              String
+  description        String
+  propertyType       String
+  rent               Decimal            @db.Decimal(12, 2)
+  deposit            Decimal?           @db.Decimal(12, 2)
+  maintenance        Decimal?           @db.Decimal(12, 2)
+  brokerage          Decimal?           @db.Decimal(12, 2)
+  bedrooms           Int
+  bathrooms          Int
+  area               Decimal?           @db.Decimal(10, 2)
+  furnishing         String?
+  address            String
+  areaName           String
+  city               String
+  state              String
+  pincode            String
+  floor              Int?
+  totalFloors        Int?
+  propertyAge        Int?
+  availableFrom      DateTime
+  status             PropertyStatus     @default(DRAFT)
+  verificationStatus VerificationStatus @default(PENDING)
+  images             PropertyImage[]
+  favourites         Favourite[]
+  enquiries          Enquiry[]
+  visits             Visit[]
+  agreements         Agreement[]
+  reports            Report[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([ownerId])
+  @@index([city, areaName])
+  @@index([rent, bedrooms])
+  @@index([status, verificationStatus])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  imageUrl   String
+  storageKey String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model Favourite {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, propertyId])
+  @@index([propertyId])
+}
+
+model Enquiry {
+  id         String        @id @default(cuid())
+  propertyId String
+  tenantId   String
+  ownerId    String
+  property   Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant     User          @relation("tenantEnquiries", fields: [tenantId], references: [id])
+  owner      User          @relation("ownerEnquiries", fields: [ownerId], references: [id])
+  message    String
+  status     EnquiryStatus @default(OPEN)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([tenantId, status])
+  @@index([ownerId, status])
+  @@index([propertyId])
+}
+
+model Visit {
+  id            String      @id @default(cuid())
+  propertyId    String
+  tenantId      String
+  ownerId       String
+  property      Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant        User        @relation("tenantVisits", fields: [tenantId], references: [id])
+  owner         User        @relation("ownerVisits", fields: [ownerId], references: [id])
+  requestedDate DateTime
+  requestedTime String
+  message       String?
+  status        VisitStatus @default(PENDING)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([tenantId, status])
+  @@index([ownerId, status])
+  @@index([propertyId, requestedDate])
+}
+
+model Agreement {
+  id                      String          @id @default(cuid())
+  propertyId              String
+  ownerId                 String
+  tenantId                String
+  property                Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  owner                   User            @relation("ownerAgreements", fields: [ownerId], references: [id])
+  tenant                  User            @relation("tenantAgreements", fields: [tenantId], references: [id])
+  rent                    Decimal         @db.Decimal(12, 2)
+  deposit                 Decimal?        @db.Decimal(12, 2)
+  startDate               DateTime
+  endDate                 DateTime
+  rentDueDate             Int
+  noticePeriod            String?
+  maintenanceResponsibility String?
+  utilities               String?
+  pets                    String?
+  subletting              String?
+  additionalTerms         String?
+  status                  AgreementStatus @default(DRAFT)
+  documents               Document[]
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  @@index([ownerId, status])
+  @@index([tenantId, status])
+  @@index([propertyId])
+}
+
+model Document {
+  id           String    @id @default(cuid())
+  userId       String
+  agreementId  String
+  user         User      @relation(fields: [userId], references: [id])
+  agreement    Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  documentType String
+  storageKey   String
+  status       String    @default("PENDING")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([agreementId])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  propertyId String
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id])
+  reason     String
+  description String?
+  status     String   @default("OPEN")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([propertyId, status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+}
