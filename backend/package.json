@@ -17,12 +17,14 @@
     "express": "latest",
     "express-rate-limit": "latest",
     "helmet": "latest",
+    "multer": "^2.0.2",
     "zod": "latest"
   },
   "devDependencies": {
     "@types/cookie-parser": "latest",
     "@types/cors": "latest",
     "@types/express": "latest",
+    "@types/multer": "^2.0.0",
     "@types/node": "latest",
     "prisma": "6.19.1",
     "tsx": "latest",
