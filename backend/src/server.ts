@@ -1,0 +1,41 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
+import propertiesRouter from './routes/properties.js';
+import ownerPropertiesRouter from './routes/ownerProperties.js';
+import authRouter from './routes/auth.js';
+import favoritesRouter from './routes/favorites.js';
+import enquiriesRouter from './routes/enquiries.js';
+import visitsRouter from './routes/visits.js';
+import notificationsRouter from './routes/notifications.js';
+import agreementsRouter from './routes/agreements.js';
+import agreementDocumentsRouter from './routes/agreementDocuments.js';
+
+const app = express();
+app.use(helmet());
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
+
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'rental-platform-api' }));
+app.use('/api/auth', authRouter);
+app.use('/api/properties', propertiesRouter);
+app.use('/api/owner/properties', ownerPropertiesRouter);
+app.use('/api/favorites', favoritesRouter);
+app.use('/api/enquiries', enquiriesRouter);
+app.use('/api/visits', visitsRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/agreements', agreementsRouter);
+app.use('/api/agreement-documents', agreementDocumentsRouter);
+
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (error instanceof Error && error.name === 'ZodError') return res.status(400).json({ error: 'Invalid request data' });
+  console.error(error);
+  return res.status(500).json({ error: 'Internal server error' });
+});
+app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+
+app.listen(Number(process.env.PORT || 4000), () => console.log('API listening on http://localhost:4000'));
