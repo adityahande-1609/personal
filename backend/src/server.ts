@@ -6,6 +6,8 @@ import rateLimit from 'express-rate-limit';
 import propertiesRouter from './routes/properties.js';
 import ownerPropertiesRouter from './routes/ownerProperties.js';
 import authRouter from './routes/auth.js';
+import favoritesRouter from './routes/favorites.js';
+import enquiriesRouter from './routes/enquiries.js';
 
 const app = express();
 app.use(helmet());
@@ -18,6 +20,8 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'rental-plat
 app.use('/api/auth', authRouter);
 app.use('/api/properties', propertiesRouter);
 app.use('/api/owner/properties', ownerPropertiesRouter);
+app.use('/api/favorites', favoritesRouter);
+app.use('/api/enquiries', enquiriesRouter);
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof Error && error.name === 'ZodError') return res.status(400).json({ error: 'Invalid request data' });
