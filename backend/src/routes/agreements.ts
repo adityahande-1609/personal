@@ -1,0 +1,88 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '../lib/prisma.js';
+import { requireAuth } from '../middleware/auth.js';
+
+const router = Router();
+router.use(requireAuth);
+
+const agreementSchema = z.object({
+  propertyId: z.string().min(1),
+  ownerId: z.string().min(1),
+  tenantId: z.string().min(1),
+  rent: z.coerce.number().positive(),
+  deposit: z.coerce.number().nonnegative().optional(),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  rentDueDate: z.coerce.number().int().min(1).max(31),
+  noticePeriod: z.string().trim().max(500).optional(),
+  maintenanceResponsibility: z.string().trim().max(1000).optional(),
+  utilities: z.string().trim().max(1000).optional(),
+  pets: z.string().trim().max(500).optional(),
+  subletting: z.string().trim().max(500).optional(),
+  additionalTerms: z.string().trim().max(5000).optional()
+}).refine(value => value.endDate > value.startDate, { message: 'End date must be after start date', path: ['endDate'] });
+
+const updateSchema = agreementSchema.partial().omit({ propertyId: true, ownerId: true, tenantId: true });
+
+async function accessibleAgreement(id: string, userId: string) {
+  return prisma.agreement.findFirst({ where: { id, OR: [{ ownerId: userId }, { tenantId: userId }] }, include: { property: true, owner: { select: { id: true, name: true, email: true, phone: true } }, tenant: { select: { id: true, name: true, email: true, phone: true } }, documents: true } });
+}
+
+router.post('/', async (req, res, next) => {
+  try {
+    const input = agreementSchema.parse(req.body);
+    if (!['OWNER', 'TENANT'].includes(req.user!.role)) return res.status(403).json({ error: 'Only owners and tenants can create agreements' });
+    if (req.user!.id !== input.ownerId && req.user!.id !== input.tenantId) return res.status(403).json({ error: 'You must be a participant in the agreement' });
+    const [property, owner, tenant] = await Promise.all([
+      prisma.property.findFirst({ where: { id: input.propertyId, ownerId: input.ownerId, status: 'ACTIVE' } }),
+      prisma.user.findUnique({ where: { id: input.ownerId } }),
+      prisma.user.findUnique({ where: { id: input.tenantId } })
+    ]);
+    if (!property || !owner || !tenant || owner.role !== 'OWNER' || tenant.role !== 'TENANT') return res.status(400).json({ error: 'Invalid agreement participants or property' });
+    const agreement = await prisma.agreement.create({ data: { ...input, status: 'DRAFT' }, include: { property: true } });
+    await prisma.notification.create({ data: { userId: req.user!.id === input.ownerId ? input.tenantId : input.ownerId, title: 'Rental agreement started', message: `An agreement has been started for ${property.title}.` } });
+    return res.status(201).json({ data: agreement });
+  } catch (error) { return next(error); }
+});
+
+router.get('/', async (req, res, next) => {
+  try {
+    if (!['OWNER', 'TENANT'].includes(req.user!.role)) return res.status(403).json({ error: 'Forbidden' });
+    const agreements = await prisma.agreement.findMany({ where: { OR: [{ ownerId: req.user!.id }, { tenantId: req.user!.id }] }, include: { property: true }, orderBy: { updatedAt: 'desc' } });
+    return res.json({ data: agreements });
+  } catch (error) { return next(error); }
+});
+
+router.get('/:id', async (req, res, next) => {
+  try {
+    const agreement = await accessibleAgreement(String(req.params.id), req.user!.id);
+    if (!agreement) return res.status(404).json({ error: 'Agreement not found' });
+    return res.json({ data: agreement });
+  } catch (error) { return next(error); }
+});
+
+router.put('/:id', async (req, res, next) => {
+  try {
+    const existing = await accessibleAgreement(String(req.params.id), req.user!.id);
+    if (!existing) return res.status(404).json({ error: 'Agreement not found' });
+    if (existing.status === 'COMPLETED' || existing.status === 'CANCELLED') return res.status(409).json({ error: 'This agreement can no longer be edited' });
+    const input = updateSchema.parse(req.body);
+    const agreement = await prisma.agreement.update({ where: { id: existing.id }, data: input });
+    return res.json({ data: agreement });
+  } catch (error) { return next(error); }
+});
+
+router.post('/:id/submit', async (req, res, next) => {
+  try {
+    const existing = await accessibleAgreement(String(req.params.id), req.user!.id);
+    if (!existing) return res.status(404).json({ error: 'Agreement not found' });
+    if (existing.status !== 'DRAFT') return res.status(409).json({ error: 'Only draft agreements can be submitted' });
+    const agreement = await prisma.agreement.update({ where: { id: existing.id }, data: { status: 'SUBMITTED' } });
+    const recipient = req.user!.id === existing.ownerId ? existing.tenantId : existing.ownerId;
+    await prisma.notification.create({ data: { userId: recipient, title: 'Agreement ready for review', message: `The rental agreement for ${existing.property.title} was submitted for review.` } });
+    return res.json({ data: agreement });
+  } catch (error) { return next(error); }
+});
+
+export default router;
