@@ -5,6 +5,7 @@ export type Property = { id: string; title: string; description: string; propert
 export type Favorite = { id: string; propertyId: string; property: Property };
 export type Enquiry = { id: string; propertyId: string; tenantId: string; ownerId: string; message: string; status: string; property: Pick<Property, 'id' | 'title' | 'city' | 'areaName'> };
 export type Visit = { id: string; propertyId: string; tenantId: string; ownerId: string; requestedDate: string; requestedTime: string; message?: string | null; status: string; property: Pick<Property, 'id' | 'title' | 'city' | 'areaName'> };
+export type Notification = { id: string; title: string; message: string; isRead: boolean; createdAt: string };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { ...init, credentials: 'include', headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
@@ -28,3 +29,6 @@ export async function updateEnquiry(id: string, status: string) { return request
 export async function createVisit(input: { propertyId: string; requestedDate: string; requestedTime: string; message?: string }) { return request<Visit>('/visits', { method: 'POST', body: JSON.stringify(input) }); }
 export async function getVisits() { return request<Visit[]>('/visits'); }
 export async function updateVisit(id: string, input: { status: string; requestedDate?: string; requestedTime?: string }) { return request<Visit>(`/visits/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(input) }); }
+export async function getNotifications() { return request<Notification[]>('/notifications'); }
+export async function markNotificationRead(id: string) { return request<Notification>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' }); }
+export async function markAllNotificationsRead() { return request<void>('/notifications/read-all', { method: 'PATCH' }); }
