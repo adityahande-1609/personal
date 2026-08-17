@@ -2,6 +2,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 export type User = { id: string; name: string; email: string; phone: string | null; role: 'TENANT' | 'OWNER' | 'ADMIN'; isVerified: boolean };
 export type Property = { id: string; title: string; description: string; propertyType: string; rent: string | number; deposit?: string | number | null; bedrooms: number; bathrooms: number; area?: string | number | null; furnishing?: string | null; areaName: string; city: string; state: string; pincode: string; availableFrom: string; status?: string; verificationStatus: string; images: { id: string; imageUrl: string; isPrimary: boolean }[] };
+export type Favorite = { id: string; propertyId: string; property: Property };
+export type Enquiry = { id: string; propertyId: string; tenantId: string; ownerId: string; message: string; status: string; property: Pick<Property, 'id' | 'title' | 'city' | 'areaName'> };
+export type Visit = { id: string; propertyId: string; tenantId: string; ownerId: string; requestedDate: string; requestedTime: string; message?: string | null; status: string; property: Pick<Property, 'id' | 'title' | 'city' | 'areaName'> };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { ...init, credentials: 'include', headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
@@ -14,6 +17,14 @@ export async function register(input: { name: string; email: string; phone?: str
 export async function login(input: { email: string; password: string }) { return request<{ user: User }>('/auth/login', { method: 'POST', body: JSON.stringify(input) }); }
 export async function logout() { return request<void>('/auth/logout', { method: 'POST' }); }
 export async function getCurrentUser() { return request<{ user: User }>('/auth/me'); }
-
 export async function getProperties(params: URLSearchParams): Promise<Property[]> { const body = await request<{ data: Property[] }>(`/properties?${params.toString()}`); return body.data; }
 export async function getProperty(id: string): Promise<Property> { const body = await request<{ data: Property }>(`/properties/${encodeURIComponent(id)}`); return body.data; }
+export async function getFavorites(): Promise<Favorite[]> { return request<Favorite[]>('/favorites'); }
+export async function addFavorite(propertyId: string) { return request<Favorite>('/favorites', { method: 'POST', body: JSON.stringify({ propertyId }) }); }
+export async function removeFavorite(propertyId: string) { return request<void>(`/favorites/${encodeURIComponent(propertyId)}`, { method: 'DELETE' }); }
+export async function createEnquiry(input: { propertyId: string; message: string }) { return request<Enquiry>('/enquiries', { method: 'POST', body: JSON.stringify(input) }); }
+export async function getEnquiries() { return request<Enquiry[]>('/enquiries'); }
+export async function updateEnquiry(id: string, status: string) { return request<Enquiry>(`/enquiries/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status }) }); }
+export async function createVisit(input: { propertyId: string; requestedDate: string; requestedTime: string; message?: string }) { return request<Visit>('/visits', { method: 'POST', body: JSON.stringify(input) }); }
+export async function getVisits() { return request<Visit[]>('/visits'); }
+export async function updateVisit(id: string, input: { status: string; requestedDate?: string; requestedTime?: string }) { return request<Visit>(`/visits/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(input) }); }
