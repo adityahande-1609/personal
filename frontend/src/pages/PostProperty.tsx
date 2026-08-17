@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createOwnerProperty } from '../services/api';
+import { createOwnerProperty } from '../services/ownerApi';
 
 export default function PostProperty() {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export default function PostProperty() {
     event.preventDefault();
     if (step < 4) return next();
     setBusy(true); setError('');
-    try { const result = await createOwnerProperty(form); navigate(`/owner/properties/${result.data.id}/edit`); }
+    try { const result = await createOwnerProperty(form); navigate(`/owner/dashboard?created=${result.data.id}`); }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to create property'); }
     finally { setBusy(false); }
   }
