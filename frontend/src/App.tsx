@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {BrowserRouter,Link,Route,Routes,useNavigate} from 'react-router-dom';
+import {BrowserRouter,Link,Navigate,Route,Routes,useNavigate} from 'react-router-dom';
 import Home from './pages/Home';
 import Properties from './pages/Properties';
 import PropertyDetails from './pages/PropertyDetails';
@@ -19,8 +19,7 @@ function DashboardEntry(){
   const [user,setUser] = useState<User|null>(null);
   useEffect(()=>{getCurrentUser().then(({user})=>setUser(user)).catch(()=>navigate('/login',{replace:true}));},[navigate]);
   if(!user)return <main className="page simple"><p>Loading your dashboard…</p></main>;
-  navigate(user.role === 'OWNER' ? '/owner/dashboard' : '/tenant/dashboard',{replace:true});
-  return null;
+  return <Navigate to={user.role === 'OWNER' ? '/owner/dashboard' : '/tenant/dashboard'} replace/>;
 }
 
 function Navigation(){
@@ -33,4 +32,4 @@ export default function App(){return <BrowserRouter><Navigation/><Routes>
   <Route path="/owner/dashboard" element={<Dashboard role="OWNER"/>}/><Route path="/owner/properties/new" element={<PostProperty/>}/><Route path="/tenant/dashboard" element={<Dashboard role="TENANT"/>}/>
   <Route path="/notifications" element={<Notifications/>}/><Route path="/agreements" element={<Agreements/>}/><Route path="/agreements/new" element={<NewAgreement/>}/><Route path="/agreements/:id" element={<AgreementDetails/>}/>
   <Route path="/services" element={<Info title="Services"/>}/><Route path="/services/rental-agreement" element={<Agreements/>}/><Route path="/about" element={<Info title="About Rentwise"/>}/><Route path="/contact" element={<Info title="Contact"/>}/>
-</Routes><footer><div><strong>rentwise</strong><p>Find a place. Rent with confidence.</p></div><span>© 2026 Rentwise</span></div></footer></BrowserRouter>}
+</Routes><footer><div><strong>rentwise</strong><p>Find a place. Rent with confidence.</p></div><span>© 2026 Rentwise</span></footer></BrowserRouter>}
