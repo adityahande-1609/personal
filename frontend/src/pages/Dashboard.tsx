@@ -3,6 +3,7 @@ import {Link, useNavigate} from 'react-router-dom';
 import {ArrowRight, CalendarDays, CheckCircle2, Heart, Home, LogOut, MessageCircle, Plus, Search, ShieldCheck} from 'lucide-react';
 import {getCurrentUser, getEnquiries, getFavorites, getVisits, logout, updateEnquiry, updateVisit, User} from '../services/api';
 import {getOwnerProperties} from '../services/ownerApi';
+import '../dashboard.css';
 
 export default function Dashboard({role}:{role:'OWNER'|'TENANT'}) {
   const navigate = useNavigate();
