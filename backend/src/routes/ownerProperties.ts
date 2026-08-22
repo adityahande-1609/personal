@@ -59,6 +59,17 @@ router.get('/', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.get('/:id', async (req, res, next) => {
+  try {
+    const property = await prisma.property.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.id },
+      include: { images: { orderBy: { isPrimary: 'desc' } } },
+    });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    res.json({ data: property });
+  } catch (error) { next(error); }
+});
+
 router.post('/', async (req, res, next) => {
   try {
     const data = propertySchema.parse(req.body);
