@@ -9,6 +9,9 @@
     "start": "node dist/server.js",
     "test": "vitest run"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "6.19.1",
     "bcryptjs": "latest",
@@ -16,7 +19,6 @@
     "cors": "latest",
     "express": "latest",
     "express-rate-limit": "latest",
-    "helmet": "latest",
     "multer": "^2.0.2",
     "zod": "latest"
   },
@@ -24,7 +26,7 @@
     "@types/cookie-parser": "latest",
     "@types/cors": "latest",
     "@types/express": "latest",
-    "@types/multer": "^2.0.0",
+    "@types/multer": "latest",
     "@types/node": "latest",
     "prisma": "6.19.1",
     "tsx": "latest",
